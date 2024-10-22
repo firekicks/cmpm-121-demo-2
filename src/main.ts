@@ -17,15 +17,25 @@ drawingCanvas.width = 256;
 drawingCanvas.height = 256;
 drawingCanvas.id = "myCanvas";
 
-// Create clear button
+// Create buttons
 const clearButton = document.createElement('button');
 clearButton.textContent = "Clear Canvas";
 clearButton.id = "clearButton";
+
+const undoButton = document.createElement('button');
+undoButton.textContent = "Undo";
+undoButton.id = "undoButton";
+
+const redoButton = document.createElement('button');
+redoButton.textContent = "Redo";
+redoButton.id = "redoButton";
 
 // Append elements to app
 app.appendChild(appTitle);
 app.appendChild(drawingCanvas);
 app.appendChild(clearButton);
+app.appendChild(undoButton);
+app.appendChild(redoButton);
 
 const ctx = drawingCanvas.getContext('2d');
 if (ctx) {
@@ -33,16 +43,18 @@ if (ctx) {
     ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 }
 
-// Array to store all the strokes (arrays of points)
+// Arrays for storing strokes and redo stack
 let strokes: { x: number, y: number }[][] = [];
+let redoStack: { x: number, y: number }[][] = [];
 let currentStroke: { x: number, y: number }[] = [];
 let drawing = false;
 
 // Handle mouse down event
 drawingCanvas.addEventListener('mousedown', (e) => {
     drawing = true;
-    currentStroke = [];
-    addPoint(e);
+    currentStroke = []; 
+    addPoint(e); 
+    redoStack = []; 
 });
 
 // Handle mouse move event
@@ -57,7 +69,7 @@ drawingCanvas.addEventListener('mouseup', () => {
     if (drawing) {
         strokes.push(currentStroke); 
         drawing = false;
-        dispatchDrawingChangedEvent();
+        dispatchDrawingChangedEvent(); 
     }
 });
 
@@ -79,7 +91,7 @@ const addPoint = (e: MouseEvent) => {
 // Dispatch custom "drawing-changed" event
 const dispatchDrawingChangedEvent = () => {
     const event = new CustomEvent("drawing-changed");
-    drawingCanvas.dispatchEvent(event); 
+    drawingCanvas.dispatchEvent(event); // Dispatch the custom event
 };
 
 // Event listener for "drawing-changed" event to clear and redraw
@@ -112,8 +124,37 @@ const redrawCanvas = () => {
     }
 };
 
+// Undo function to pop the most recent stroke and add it to the redo stack
+const undo = () => {
+    if (strokes.length > 0) {
+        const lastStroke = strokes.pop(); 
+        if (lastStroke) redoStack.push(lastStroke);
+        dispatchDrawingChangedEvent(); 
+    }
+};
+
+// Redo function to pop the most recent stroke from the redo stack and add it to strokes
+const redo = () => {
+    if (redoStack.length > 0) {
+        const lastRedoStroke = redoStack.pop(); 
+        if (lastRedoStroke) strokes.push(lastRedoStroke); 
+        dispatchDrawingChangedEvent(); 
+    }
+};
+
 // Clear canvas when button is clicked
 clearButton.addEventListener('click', () => {
     strokes = []; 
+    redoStack = []; 
     dispatchDrawingChangedEvent(); 
+});
+
+// Undo button functionality
+undoButton.addEventListener('click', () => {
+    undo(); 
+});
+
+// Redo button functionality
+redoButton.addEventListener('click', () => {
+    redo(); 
 });
