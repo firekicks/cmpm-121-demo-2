@@ -33,52 +33,87 @@ if (ctx) {
     ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 }
 
+// Array to store all the strokes (arrays of points)
+let strokes: { x: number, y: number }[][] = [];
+let currentStroke: { x: number, y: number }[] = [];
 let drawing = false;
 
 // Handle mouse down event
 drawingCanvas.addEventListener('mousedown', (e) => {
     drawing = true;
-    draw(e);
+    currentStroke = [];
+    addPoint(e);
 });
 
 // Handle mouse move event
 drawingCanvas.addEventListener('mousemove', (e) => {
     if (drawing) {
-        draw(e);
+        addPoint(e); 
     }
 });
 
 // Handle mouse up event
 drawingCanvas.addEventListener('mouseup', () => {
-    drawing = false;
-    ctx?.beginPath(); // Resets path to prevent unwanted connections
+    if (drawing) {
+        strokes.push(currentStroke); 
+        drawing = false;
+        dispatchDrawingChangedEvent();
+    }
 });
 
 // Handle mouse out event
 drawingCanvas.addEventListener('mouseout', () => {
-    drawing = false;
-    ctx?.beginPath();
+    if (drawing) {
+        strokes.push(currentStroke); 
+        drawing = false;
+        dispatchDrawingChangedEvent(); 
+    }
 });
 
-// Draw function
-const draw = (e: MouseEvent) => {
-    if (!ctx) return;
-    
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "black";
-
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
+// Function to add a point to the current stroke
+const addPoint = (e: MouseEvent) => {
+    currentStroke.push({ x: e.offsetX, y: e.offsetY });
+    dispatchDrawingChangedEvent(); 
 };
 
-// Clear canvas when button is clicked
-clearButton.addEventListener('click', () => {
+// Dispatch custom "drawing-changed" event
+const dispatchDrawingChangedEvent = () => {
+    const event = new CustomEvent("drawing-changed");
+    drawingCanvas.dispatchEvent(event); 
+};
+
+// Event listener for "drawing-changed" event to clear and redraw
+drawingCanvas.addEventListener("drawing-changed", () => {
+    redrawCanvas();
+});
+
+// Function to redraw the canvas based on the saved strokes
+const redrawCanvas = () => {
     if (ctx) {
         ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "black";
+
+        for (const stroke of strokes) {
+            if (stroke.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(stroke[0].x, stroke[0].y);
+                for (const point of stroke) {
+                    ctx.lineTo(point.x, point.y);
+                }
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
     }
+};
+
+// Clear canvas when button is clicked
+clearButton.addEventListener('click', () => {
+    strokes = []; 
+    dispatchDrawingChangedEvent(); 
 });
