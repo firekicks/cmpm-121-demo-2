@@ -54,7 +54,6 @@ if (ctx) {
     ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 }
 
-// MarkerLine class to represent each line drawn on the canvas
 class MarkerLine {
     points: { x: number, y: number }[];
     thickness: number;
@@ -64,12 +63,10 @@ class MarkerLine {
         this.thickness = thickness;
     }
 
-    // Adds a new point to the line as the user drags
     drag(x: number, y: number) {
         this.points.push({ x, y });
     }
 
-    // Displays the line on the canvas
     display(ctx: CanvasRenderingContext2D) {
         if (this.points.length > 1) {
             ctx.lineWidth = this.thickness;
@@ -87,6 +84,31 @@ class MarkerLine {
     }
 }
 
+class ToolPreview {
+    x: number;
+    y: number;
+    thickness: number;
+
+    constructor(x: number, y: number, thickness: number) {
+        this.x = x;
+        this.y = y;
+        this.thickness = thickness;
+    }
+
+    updatePosition(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    draw(ctx: CanvasRenderingContext2D) {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "gray";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.thickness / 2, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+}
+
 // Arrays to store marker lines and redo stack
 let strokes: MarkerLine[] = [];
 let redoStack: MarkerLine[] = [];
@@ -95,6 +117,7 @@ let drawing = false;
 
 // Variable to track the current tool (default to thin marker)
 let currentThickness = 2;
+let toolPreview: ToolPreview | null = null; 
 
 // Function to set the selected tool (marker thickness)
 const setTool = (thickness: number) => {
@@ -105,17 +128,18 @@ const setTool = (thickness: number) => {
     if (thickness === 2) {
         thinButton.classList.add('selectedTool'); 
     } else if (thickness === 6) {
-        thickButton.classList.add('selectedTool'); 
+        thickButton.classList.add('selectedTool');
     }
 };
 
+// Set default tool to thin
 setTool(2);
 
-// Handle mouse down event
 drawingCanvas.addEventListener('mousedown', (e) => {
     drawing = true;
     currentStroke = new MarkerLine(e.offsetX, e.offsetY, currentThickness); 
-    redoStack = []; 
+    redoStack = [];
+    toolPreview = null; 
 });
 
 // Handle mouse move event
@@ -123,6 +147,13 @@ drawingCanvas.addEventListener('mousemove', (e) => {
     if (drawing && currentStroke) {
         currentStroke.drag(e.offsetX, e.offsetY); 
         dispatchDrawingChangedEvent(); 
+    } else {
+        if (!toolPreview) {
+            toolPreview = new ToolPreview(e.offsetX, e.offsetY, currentThickness); 
+        } else {
+            toolPreview.updatePosition(e.offsetX, e.offsetY); 
+        }
+        dispatchToolMovedEvent(); 
     }
 });
 
@@ -139,11 +170,12 @@ drawingCanvas.addEventListener('mouseup', () => {
 // Handle mouse out event
 drawingCanvas.addEventListener('mouseout', () => {
     if (drawing && currentStroke) {
-        strokes.push(currentStroke);
+        strokes.push(currentStroke); 
         drawing = false;
         currentStroke = null;
-        dispatchDrawingChangedEvent();
+        dispatchDrawingChangedEvent(); 
     }
+    toolPreview = null; 
 });
 
 // Dispatch custom "drawing-changed" event
@@ -152,9 +184,23 @@ const dispatchDrawingChangedEvent = () => {
     drawingCanvas.dispatchEvent(event); 
 };
 
+// Dispatch custom "tool-moved" event
+const dispatchToolMovedEvent = () => {
+    const event = new CustomEvent("tool-moved");
+    drawingCanvas.dispatchEvent(event); 
+};
+
 // Event listener for "drawing-changed" event to clear and redraw
 drawingCanvas.addEventListener("drawing-changed", () => {
     redrawCanvas();
+});
+
+// Event listener for "tool-moved" event to show tool preview
+drawingCanvas.addEventListener("tool-moved", () => {
+    redrawCanvas(); 
+    if (ctx && toolPreview) {
+        toolPreview.draw(ctx);
+    }
 });
 
 // Function to redraw the canvas based on the saved marker lines
@@ -182,8 +228,8 @@ const undo = () => {
 // Redo function to pop the most recent stroke from the redo stack and add it to strokes
 const redo = () => {
     if (redoStack.length > 0) {
-        const lastRedoStroke = redoStack.pop(); 
-        if (lastRedoStroke) strokes.push(lastRedoStroke);
+        const lastRedoStroke = redoStack.pop();
+        if (lastRedoStroke) strokes.push(lastRedoStroke); 
         dispatchDrawingChangedEvent(); 
     }
 };
