@@ -37,56 +37,84 @@ app.appendChild(clearButton);
 app.appendChild(undoButton);
 app.appendChild(redoButton);
 
+// Get canvas context
 const ctx = drawingCanvas.getContext('2d');
 if (ctx) {
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 }
 
-// Arrays for storing strokes and redo stack
-let strokes: { x: number, y: number }[][] = [];
-let redoStack: { x: number, y: number }[][] = [];
-let currentStroke: { x: number, y: number }[] = [];
+// MarkerLine class to represent each line drawn on the canvas
+class MarkerLine {
+    points: { x: number, y: number }[];
+
+    constructor(x: number, y: number) {
+        this.points = [{ x, y }];
+    }
+
+    // Adds a new point to the line as the user drags
+    drag(x: number, y: number) {
+        this.points.push({ x, y });
+    }
+
+    // Displays the line on the canvas
+    display(ctx: CanvasRenderingContext2D) {
+        if (this.points.length > 1) {
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "black";
+
+            ctx.beginPath();
+            ctx.moveTo(this.points[0].x, this.points[0].y);
+            for (const point of this.points) {
+                ctx.lineTo(point.x, point.y);
+            }
+            ctx.stroke();
+            ctx.closePath();
+        }
+    }
+}
+
+// Arrays to store marker lines and redo stack
+let strokes: MarkerLine[] = [];
+let redoStack: MarkerLine[] = [];
+let currentStroke: MarkerLine | null = null;
 let drawing = false;
 
 // Handle mouse down event
 drawingCanvas.addEventListener('mousedown', (e) => {
     drawing = true;
-    currentStroke = []; 
-    addPoint(e); 
+    currentStroke = new MarkerLine(e.offsetX, e.offsetY);
     redoStack = []; 
 });
 
 // Handle mouse move event
 drawingCanvas.addEventListener('mousemove', (e) => {
-    if (drawing) {
-        addPoint(e); 
+    if (drawing && currentStroke) {
+        currentStroke.drag(e.offsetX, e.offsetY);
+        dispatchDrawingChangedEvent(); 
     }
 });
 
 // Handle mouse up event
 drawingCanvas.addEventListener('mouseup', () => {
-    if (drawing) {
+    if (drawing && currentStroke) {
         strokes.push(currentStroke); 
         drawing = false;
+        currentStroke = null;
         dispatchDrawingChangedEvent(); 
     }
 });
 
 // Handle mouse out event
 drawingCanvas.addEventListener('mouseout', () => {
-    if (drawing) {
+    if (drawing && currentStroke) {
         strokes.push(currentStroke); 
         drawing = false;
+        currentStroke = null;
         dispatchDrawingChangedEvent(); 
     }
 });
-
-// Function to add a point to the current stroke
-const addPoint = (e: MouseEvent) => {
-    currentStroke.push({ x: e.offsetX, y: e.offsetY });
-    dispatchDrawingChangedEvent(); 
-};
 
 // Dispatch custom "drawing-changed" event
 const dispatchDrawingChangedEvent = () => {
@@ -99,27 +127,15 @@ drawingCanvas.addEventListener("drawing-changed", () => {
     redrawCanvas();
 });
 
-// Function to redraw the canvas based on the saved strokes
+// Function to redraw the canvas based on the saved marker lines
 const redrawCanvas = () => {
     if (ctx) {
         ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 
-        ctx.lineWidth = 2;
-        ctx.lineCap = "round";
-        ctx.strokeStyle = "black";
-
         for (const stroke of strokes) {
-            if (stroke.length > 0) {
-                ctx.beginPath();
-                ctx.moveTo(stroke[0].x, stroke[0].y);
-                for (const point of stroke) {
-                    ctx.lineTo(point.x, point.y);
-                }
-                ctx.stroke();
-                ctx.closePath();
-            }
+            stroke.display(ctx);
         }
     }
 };
@@ -128,7 +144,7 @@ const redrawCanvas = () => {
 const undo = () => {
     if (strokes.length > 0) {
         const lastStroke = strokes.pop(); 
-        if (lastStroke) redoStack.push(lastStroke);
+        if (lastStroke) redoStack.push(lastStroke); 
         dispatchDrawingChangedEvent(); 
     }
 };
