@@ -17,7 +17,7 @@ drawingCanvas.width = 256;
 drawingCanvas.height = 256;
 drawingCanvas.id = "myCanvas";
 
-// Create buttons
+// Create buttons for tools
 const clearButton = document.createElement('button');
 clearButton.textContent = "Clear Canvas";
 clearButton.id = "clearButton";
@@ -30,12 +30,22 @@ const redoButton = document.createElement('button');
 redoButton.textContent = "Redo";
 redoButton.id = "redoButton";
 
+const thinButton = document.createElement('button');
+thinButton.textContent = "Thin Marker";
+thinButton.id = "thinButton";
+
+const thickButton = document.createElement('button');
+thickButton.textContent = "Thick Marker";
+thickButton.id = "thickButton";
+
 // Append elements to app
 app.appendChild(appTitle);
 app.appendChild(drawingCanvas);
 app.appendChild(clearButton);
 app.appendChild(undoButton);
 app.appendChild(redoButton);
+app.appendChild(thinButton);
+app.appendChild(thickButton);
 
 // Get canvas context
 const ctx = drawingCanvas.getContext('2d');
@@ -47,9 +57,11 @@ if (ctx) {
 // MarkerLine class to represent each line drawn on the canvas
 class MarkerLine {
     points: { x: number, y: number }[];
+    thickness: number;
 
-    constructor(x: number, y: number) {
+    constructor(x: number, y: number, thickness: number) {
         this.points = [{ x, y }];
+        this.thickness = thickness;
     }
 
     // Adds a new point to the line as the user drags
@@ -60,7 +72,7 @@ class MarkerLine {
     // Displays the line on the canvas
     display(ctx: CanvasRenderingContext2D) {
         if (this.points.length > 1) {
-            ctx.lineWidth = 2;
+            ctx.lineWidth = this.thickness;
             ctx.lineCap = "round";
             ctx.strokeStyle = "black";
 
@@ -81,17 +93,35 @@ let redoStack: MarkerLine[] = [];
 let currentStroke: MarkerLine | null = null;
 let drawing = false;
 
+// Variable to track the current tool (default to thin marker)
+let currentThickness = 2;
+
+// Function to set the selected tool (marker thickness)
+const setTool = (thickness: number) => {
+    currentThickness = thickness;
+    document.querySelectorAll('button').forEach(button => {
+        button.classList.remove('selectedTool');
+    });
+    if (thickness === 2) {
+        thinButton.classList.add('selectedTool'); 
+    } else if (thickness === 6) {
+        thickButton.classList.add('selectedTool'); 
+    }
+};
+
+setTool(2);
+
 // Handle mouse down event
 drawingCanvas.addEventListener('mousedown', (e) => {
     drawing = true;
-    currentStroke = new MarkerLine(e.offsetX, e.offsetY);
+    currentStroke = new MarkerLine(e.offsetX, e.offsetY, currentThickness); 
     redoStack = []; 
 });
 
 // Handle mouse move event
 drawingCanvas.addEventListener('mousemove', (e) => {
     if (drawing && currentStroke) {
-        currentStroke.drag(e.offsetX, e.offsetY);
+        currentStroke.drag(e.offsetX, e.offsetY); 
         dispatchDrawingChangedEvent(); 
     }
 });
@@ -109,17 +139,17 @@ drawingCanvas.addEventListener('mouseup', () => {
 // Handle mouse out event
 drawingCanvas.addEventListener('mouseout', () => {
     if (drawing && currentStroke) {
-        strokes.push(currentStroke); 
+        strokes.push(currentStroke);
         drawing = false;
         currentStroke = null;
-        dispatchDrawingChangedEvent(); 
+        dispatchDrawingChangedEvent();
     }
 });
 
 // Dispatch custom "drawing-changed" event
 const dispatchDrawingChangedEvent = () => {
     const event = new CustomEvent("drawing-changed");
-    drawingCanvas.dispatchEvent(event); // Dispatch the custom event
+    drawingCanvas.dispatchEvent(event); 
 };
 
 // Event listener for "drawing-changed" event to clear and redraw
@@ -144,7 +174,7 @@ const redrawCanvas = () => {
 const undo = () => {
     if (strokes.length > 0) {
         const lastStroke = strokes.pop(); 
-        if (lastStroke) redoStack.push(lastStroke); 
+        if (lastStroke) redoStack.push(lastStroke);
         dispatchDrawingChangedEvent(); 
     }
 };
@@ -153,7 +183,7 @@ const undo = () => {
 const redo = () => {
     if (redoStack.length > 0) {
         const lastRedoStroke = redoStack.pop(); 
-        if (lastRedoStroke) strokes.push(lastRedoStroke); 
+        if (lastRedoStroke) strokes.push(lastRedoStroke);
         dispatchDrawingChangedEvent(); 
     }
 };
@@ -173,4 +203,13 @@ undoButton.addEventListener('click', () => {
 // Redo button functionality
 redoButton.addEventListener('click', () => {
     redo(); 
+});
+
+// Tool selection functionality
+thinButton.addEventListener('click', () => {
+    setTool(2); 
+});
+
+thickButton.addEventListener('click', () => {
+    setTool(6); 
 });
