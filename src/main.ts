@@ -66,6 +66,7 @@ const createStickerButton = (sticker: { emoji: string, label: string }) => {
     stickerButton.classList.add("sticker-button");
     stickerButton.addEventListener('click', () => {
         setTool(undefined, sticker.emoji); 
+        randomizeStickerRotation(); // Randomize rotation for stickers
     });
     app.appendChild(stickerButton);
 };
@@ -102,6 +103,14 @@ if (ctx) {
     ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 }
 
+// Updated sticker randomization
+let currentStickerRotation: number = 0; // Track rotation for the current sticker
+
+// Function to set a random rotation for the sticker
+const randomizeStickerRotation = () => {
+    currentStickerRotation = Math.random() * 60 - 30; // Random rotation between -30 and +30 degrees
+};
+
 // MarkerLine class to represent each line drawn on the canvas
 class MarkerLine {
     points: { x: number, y: number }[];
@@ -133,15 +142,18 @@ class MarkerLine {
     }
 }
 
+// StickerCommand class updated to apply random rotation when a sticker is placed
 class StickerCommand {
     x: number;
     y: number;
     sticker: string;
+    rotation: number; // New rotation property
 
-    constructor(x: number, y: number, sticker: string) {
+    constructor(x: number, y: number, sticker: string, rotation: number) {
         this.x = x;
         this.y = y;
         this.sticker = sticker;
+        this.rotation = rotation;
     }
 
     drag(x: number, y: number) {
@@ -150,23 +162,29 @@ class StickerCommand {
     }
 
     display(ctx: CanvasRenderingContext2D) {
-        ctx.font = "32px serif";
-        ctx.fillText(this.sticker, this.x, this.y);
+        ctx.save(); // Save the current state
+        ctx.translate(this.x, this.y); // Move to the sticker position
+        ctx.rotate(this.rotation * Math.PI / 180); // Apply rotation in radians
+        ctx.font = "40px serif"; // Font size for stickers
+        ctx.fillText(this.sticker, 0, 0); // Draw sticker at the translated position
+        ctx.restore(); // Restore the original state
     }
 }
 
-// ToolPreview class to display the preview of the tool or sticker
+// ToolPreview class updated to show rotated stickers
 class ToolPreview {
     x: number;
     y: number;
     thickness?: number;
     sticker?: string;
+    rotation?: number;
 
-    constructor(x: number, y: number, thickness?: number, sticker?: string) {
+    constructor(x: number, y: number, thickness?: number, sticker?: string, rotation?: number) {
         this.x = x;
         this.y = y;
         this.thickness = thickness;
         this.sticker = sticker;
+        this.rotation = rotation ?? 0;
     }
 
     updatePosition(x: number, y: number) {
@@ -176,8 +194,12 @@ class ToolPreview {
 
     draw(ctx: CanvasRenderingContext2D) {
         if (this.sticker) {
+            ctx.save(); // Save the current state
+            ctx.translate(this.x, this.y); // Move to the sticker position
+            ctx.rotate((this.rotation ?? 0) * Math.PI / 180); // Rotate by the random rotation angle
             ctx.font = "40px serif"; // Updated font size for sticker preview
-            ctx.fillText(this.sticker, this.x, this.y);
+            ctx.fillText(this.sticker, 0, 0); // Draw at translated position
+            ctx.restore(); // Restore the original state
         } else if (this.thickness) {
             ctx.lineWidth = 1;
             ctx.strokeStyle = "gray";
@@ -187,7 +209,6 @@ class ToolPreview {
         }
     }
 }
-
 
 // Arrays to store marker lines, stickers, and redo stack
 let strokes: (MarkerLine | StickerCommand)[] = [];
@@ -229,7 +250,7 @@ setTool(2);
 drawingCanvas.addEventListener('mousedown', (e) => {
     drawing = true;
     if (currentStickerSymbol) {
-        currentSticker = new StickerCommand(e.offsetX, e.offsetY, currentStickerSymbol);
+        currentSticker = new StickerCommand(e.offsetX, e.offsetY, currentStickerSymbol, currentStickerRotation);
         redoStack = []; 
     } else {
         currentStroke = new MarkerLine(e.offsetX, e.offsetY, currentThickness); 
@@ -251,7 +272,7 @@ drawingCanvas.addEventListener('mousemove', (e) => {
     } else {
         if (!toolPreview) {
             if (currentStickerSymbol) {
-                toolPreview = new ToolPreview(e.offsetX, e.offsetY, undefined, currentStickerSymbol);
+                toolPreview = new ToolPreview(e.offsetX, e.offsetY, undefined, currentStickerSymbol, currentStickerRotation);
             } else {
                 toolPreview = new ToolPreview(e.offsetX, e.offsetY, currentThickness, undefined);
             }
