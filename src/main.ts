@@ -30,6 +30,10 @@ const redoButton = document.createElement('button');
 redoButton.textContent = "Redo";
 redoButton.id = "redoButton";
 
+const exportButton = document.createElement('button');
+exportButton.textContent = "Export";
+exportButton.id = "exportButton";
+
 const thinButton = document.createElement('button');
 thinButton.textContent = "Thin Marker";
 thinButton.id = "thinButton";
@@ -44,6 +48,7 @@ app.appendChild(drawingCanvas);
 app.appendChild(clearButton);
 app.appendChild(undoButton);
 app.appendChild(redoButton);
+app.appendChild(exportButton);
 app.appendChild(thinButton);
 app.appendChild(thickButton);
 
@@ -85,7 +90,7 @@ addCustomStickerButton.addEventListener('click', () => {
     const newSticker = prompt("Enter your custom sticker (emoji or character)", "🙂"); 
     if (newSticker) {
         const stickerObj = { emoji: newSticker, label: `Custom Sticker: ${newSticker}` };
-        stickers.push(stickerObj);
+        stickers.push(stickerObj); 
         createStickerButton(stickerObj); 
     }
 });
@@ -128,7 +133,6 @@ class MarkerLine {
     }
 }
 
-// StickerCommand class to represent each sticker placed on the canvas
 class StickerCommand {
     x: number;
     y: number;
@@ -170,7 +174,6 @@ class ToolPreview {
         this.y = y;
     }
 
-    // Draws the preview circle or sticker on the canvas
     draw(ctx: CanvasRenderingContext2D) {
         if (this.sticker) {
             ctx.font = "32px serif";
@@ -203,7 +206,7 @@ const setTool = (thickness?: number, sticker?: string) => {
     currentStickerSymbol = sticker ?? null;
 
     document.querySelectorAll('button').forEach(button => {
-        button.classList.remove('selectedTool');
+        button.classList.remove('selectedTool'); 
     });
 
     if (thickness) {
@@ -231,7 +234,7 @@ drawingCanvas.addEventListener('mousedown', (e) => {
         currentStroke = new MarkerLine(e.offsetX, e.offsetY, currentThickness); 
         redoStack = []; 
     }
-    toolPreview = null;
+    toolPreview = null; 
 });
 
 // Handle mouse move event
@@ -241,7 +244,7 @@ drawingCanvas.addEventListener('mousemove', (e) => {
             currentSticker.drag(e.offsetX, e.offsetY); 
             dispatchDrawingChangedEvent();
         } else if (currentStroke) {
-            currentStroke.drag(e.offsetX, e.offsetY);
+            currentStroke.drag(e.offsetX, e.offsetY); 
             dispatchDrawingChangedEvent();
         }
     } else {
@@ -282,7 +285,7 @@ const dispatchDrawingChangedEvent = () => {
 // Dispatch custom "tool-moved" event
 const dispatchToolMovedEvent = () => {
     const event = new CustomEvent("tool-moved");
-    drawingCanvas.dispatchEvent(event);
+    drawingCanvas.dispatchEvent(event); 
 };
 
 // Event listener for "drawing-changed" event to clear and redraw
@@ -324,7 +327,7 @@ const undo = () => {
 const redo = () => {
     if (redoStack.length > 0) {
         const lastRedoStroke = redoStack.pop(); 
-        if (lastRedoStroke) strokes.push(lastRedoStroke);
+        if (lastRedoStroke) strokes.push(lastRedoStroke); 
         dispatchDrawingChangedEvent(); 
     }
 };
@@ -343,7 +346,7 @@ undoButton.addEventListener('click', () => {
 
 // Redo button functionality
 redoButton.addEventListener('click', () => {
-    redo();
+    redo(); 
 });
 
 // Tool selection functionality
@@ -353,4 +356,26 @@ thinButton.addEventListener('click', () => {
 
 thickButton.addEventListener('click', () => {
     setTool(6); 
+});
+
+// Export button functionality
+exportButton.addEventListener('click', () => {
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = 1024;
+    exportCanvas.height = 1024;
+    const exportCtx = exportCanvas.getContext('2d');
+    
+    if (exportCtx) {
+        exportCtx.fillStyle = 'white';
+        exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        exportCtx.scale(4, 4); 
+        for (const stroke of strokes) {
+            stroke.display(exportCtx);
+        }
+        const imageUrl = exportCanvas.toDataURL('image/png');
+        const downloadLink = document.createElement('a');
+        downloadLink.href = imageUrl;
+        downloadLink.download = 'drawing.png';
+        downloadLink.click();
+    }
 });
