@@ -42,72 +42,57 @@ h1 {
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
+/* Updated button styles for a more polished look */
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+  border-radius: 12px; /* Slightly more rounded corners */
+  border: 2px solid transparent;
+  padding: 0.8em 1.5em; /* Increased padding for a bigger button */
+  font-size: 1.1em; /* Larger font for better visibility */
+  font-weight: 600;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #3b3b3b;
+  color: white; /* Changed button text color to white */
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: background-color 0.3s, border-color 0.3s;
 }
+
 button:hover {
+  background-color: #535bf2; /* Better hover feedback */
   border-color: #646cff;
 }
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-#myCanvas {
-  border: 1px solid black;
-  border-radius: 8px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-/* Basic button styling */
-button {
-  padding: 10px;
-  margin: 5px;
-  cursor: pointer;
-}
-
-/* Highlight selected tool */
+/* Styling for the selected tool */
 .selectedTool {
-  background-color: #646cff;
+  background-color: #4a90e2;
+  border-color: #213547;
   color: white;
+}
+
+/* Updated canvas border styling */
+#myCanvas {
+  border: 2px solid #646cff;
+  border-radius: 10px;
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.5); /* Larger shadow for a more prominent look */
+}
+
+/* Sticker button styling */
+.sticker-button {
+  font-size: 1.5em; /* Larger font for better button size */
+  padding: 10px 15px;
+  margin: 5px;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  border: 2px solid #646cff;
+  cursor: pointer;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.sticker-button:hover {
+  background-color: #535bf2;
+  border-color: #535bf2;
 }

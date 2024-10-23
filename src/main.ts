@@ -54,9 +54,9 @@ app.appendChild(thickButton);
 
 // JSON array defining the initial stickers
 let stickers = [
-    { emoji: "😀", label: "Smiley" },
-    { emoji: "🌟", label: "Star" },
-    { emoji: "❤️", label: "Heart" }
+    { emoji: "✏️", label: "Pencil" },  // Pencil sticker
+    { emoji: "🎨", label: "Palette" }, // Paint palette sticker
+    { emoji: "✂️", label: "Scissors" } // Scissors sticker
 ];
 
 // Append stickers to the UI from the array
@@ -176,7 +176,7 @@ class ToolPreview {
 
     draw(ctx: CanvasRenderingContext2D) {
         if (this.sticker) {
-            ctx.font = "32px serif";
+            ctx.font = "40px serif"; // Updated font size for sticker preview
             ctx.fillText(this.sticker, this.x, this.y);
         } else if (this.thickness) {
             ctx.lineWidth = 1;
@@ -188,6 +188,7 @@ class ToolPreview {
     }
 }
 
+
 // Arrays to store marker lines, stickers, and redo stack
 let strokes: (MarkerLine | StickerCommand)[] = [];
 let redoStack: (MarkerLine | StickerCommand)[] = [];
@@ -196,7 +197,7 @@ let currentSticker: StickerCommand | null = null;
 let drawing = false;
 
 // Variable to track the current tool (default to thin marker)
-let currentThickness = 2;
+let currentThickness = 3;
 let currentStickerSymbol: string | null = null;
 let toolPreview: ToolPreview | null = null; 
 
@@ -351,11 +352,11 @@ redoButton.addEventListener('click', () => {
 
 // Tool selection functionality
 thinButton.addEventListener('click', () => {
-    setTool(2); 
+    setTool(3); 
 });
 
 thickButton.addEventListener('click', () => {
-    setTool(6); 
+    setTool(10); 
 });
 
 // Export button functionality
