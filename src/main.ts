@@ -53,7 +53,7 @@ app.appendChild(thinButton);
 app.appendChild(thickButton);
 
 // JSON array defining the initial stickers
-let stickers = [
+const stickers = [
     { emoji: "✏️", label: "Pencil" },  // Pencil sticker
     { emoji: "🎨", label: "Palette" }, // Paint palette sticker
     { emoji: "✂️", label: "Scissors" } // Scissors sticker
@@ -126,11 +126,10 @@ class MarkerLine {
     }
 
     display(ctx: CanvasRenderingContext2D) {
+        ctx.lineWidth = this.thickness;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "black";
         if (this.points.length > 1) {
-            ctx.lineWidth = this.thickness;
-            ctx.lineCap = "round";
-            ctx.strokeStyle = "black";
-
             ctx.beginPath();
             ctx.moveTo(this.points[0].x, this.points[0].y);
             for (const point of this.points) {
@@ -257,6 +256,7 @@ drawingCanvas.addEventListener('mousedown', (e) => {
         redoStack = []; 
     }
     toolPreview = null; 
+    dispatchEvent("drawing-changed");
 });
 
 // Handle mouse move event
@@ -264,10 +264,21 @@ drawingCanvas.addEventListener('mousemove', (e) => {
     if (drawing) {
         if (currentSticker) {
             currentSticker.drag(e.offsetX, e.offsetY); 
-            dispatchDrawingChangedEvent();
+            dispatchEvent("drawing-changed");
         } else if (currentStroke) {
             currentStroke.drag(e.offsetX, e.offsetY); 
-            dispatchDrawingChangedEvent();
+            dispatchEvent("drawing-changed");
+        }
+        if (ctx) {
+            ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+            for (const stroke of strokes) {
+                stroke.display(ctx);
+            }
+            if (currentStroke) currentStroke.display(ctx);
+            if (currentSticker) currentSticker.display(ctx);
         }
     } else {
         if (!toolPreview) {
@@ -279,7 +290,7 @@ drawingCanvas.addEventListener('mousemove', (e) => {
         } else {
             toolPreview.updatePosition(e.offsetX, e.offsetY);
         }
-        dispatchToolMovedEvent();
+        dispatchEvent("tool-moved");
     }
 });
 
@@ -294,21 +305,26 @@ drawingCanvas.addEventListener('mouseup', () => {
             currentStroke = null;
         }
         drawing = false;
-        dispatchDrawingChangedEvent();
+        dispatchEvent("drawing-changed");
     }
 });
 
-// Dispatch custom "drawing-changed" event
-const dispatchDrawingChangedEvent = () => {
-    const event = new CustomEvent("drawing-changed");
-    drawingCanvas.dispatchEvent(event); 
-};
+drawingCanvas.addEventListener("mouseleave", () => {
+    if (currentSticker) {
+        strokes.push(currentSticker); 
+        currentSticker = null;
+    } else if (currentStroke) {
+        strokes.push(currentStroke); 
+        currentStroke = null;
+    }
+    drawing = false;
+    dispatchEvent("drawing-changed");
+})
 
-// Dispatch custom "tool-moved" event
-const dispatchToolMovedEvent = () => {
-    const event = new CustomEvent("tool-moved");
-    drawingCanvas.dispatchEvent(event); 
-};
+// Dispatch custom "drawing-changed" and "tool-moved" event by using a generalized function to call to them
+function dispatchEvent(name: string) {
+    drawingCanvas.dispatchEvent(new CustomEvent(name));
+}
 
 // Event listener for "drawing-changed" event to clear and redraw
 drawingCanvas.addEventListener("drawing-changed", () => {
@@ -341,7 +357,7 @@ const undo = () => {
     if (strokes.length > 0) {
         const lastStroke = strokes.pop(); 
         if (lastStroke) redoStack.push(lastStroke); 
-        dispatchDrawingChangedEvent(); 
+        dispatchEvent("drawing-changed"); 
     }
 };
 
@@ -350,7 +366,7 @@ const redo = () => {
     if (redoStack.length > 0) {
         const lastRedoStroke = redoStack.pop(); 
         if (lastRedoStroke) strokes.push(lastRedoStroke); 
-        dispatchDrawingChangedEvent(); 
+        dispatchEvent("drawing-changed"); 
     }
 };
 
@@ -358,7 +374,7 @@ const redo = () => {
 clearButton.addEventListener('click', () => {
     strokes = []; 
     redoStack = []; 
-    dispatchDrawingChangedEvent(); 
+    dispatchEvent("drawing-changed"); 
 });
 
 // Undo button functionality
